@@ -1,0 +1,7 @@
+# Tells Netlify where the serverless function lives and what to publish.
+[build]
+  publish = "."
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
