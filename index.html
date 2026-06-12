@@ -77,6 +77,7 @@
   .lb-card .rank{font-size:11px; font-weight:800; color:var(--muted)}
   .lb-name{font-family:var(--plate); font-weight:800; text-transform:uppercase; letter-spacing:.6px;
     font-size:16px; margin:2px 0 4px; line-height:1.05; color:var(--brand-deep)}
+  .lb-card.zero .lb-name{color:#c8c0d8}
   .lb-stats{display:flex; gap:12px; font-size:12px; color:var(--muted)}
   .lb-pts{color:var(--ink); font-weight:800}
   .lb-card.lead-1{border-color:var(--gold)}
@@ -178,13 +179,6 @@
 </header>
 
 <main>
-  <div class="lead">
-    <div>
-      <b>Live scores &amp; dates pull from a live football API</b> once the site is deployed with a key.
-      <div class="hint">Until then it runs on the editable draw below — tap any score to set it, saved to this browser. Knockout pre-fills from group positions.</div>
-    </div>
-  </div>
-
   <section id="groupsView">
     <div class="board-wrap">
       <div class="section-label"><span class="eyebrow">Standings</span><h2>Sweep leaderboard</h2></div>
@@ -405,7 +399,7 @@ function leaderboard(){
 function render(){renderLeaderboard(); renderGroups();}
 function renderLeaderboard(){
   document.getElementById("leaderboard").innerHTML=leaderboard().map((r,i)=>`
-    <div class="lb-card ${i===0&&r.Pts>0?'lead-1':''}">
+    <div class="lb-card ${i===0&&r.Pts>0?'lead-1':''} ${r.Pts===0?'zero':''}">
       <div class="rank">${i+1}${i===0&&r.Pts>0?' · leader':''}</div>
       <div class="lb-name">${r.owner}</div>
       <div class="lb-stats"><span><span class="lb-pts">${r.Pts}</span> pts</span><span>${r.W} W</span><span>${r.teams} ${r.teams>1?'teams':'team'}</span></div>
