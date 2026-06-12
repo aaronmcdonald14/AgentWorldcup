@@ -125,6 +125,10 @@
   .scorebox input:focus{outline:2px solid var(--gold); outline-offset:1px}
   .scorebox input.unset{color:var(--muted); background:#efeaf8}
   .scorebox .sep{color:#c9b9f2; font-weight:800; font-size:13px}
+  .match-status{font-size:9.5px; font-weight:800; letter-spacing:.8px; text-transform:uppercase; text-align:center}
+  .match-status.ft{color:var(--muted)}
+  .match-status.live{color:var(--live); display:flex; align-items:center; gap:4px}
+  .match-status.live .dot{width:6px; height:6px; border-radius:50%; background:var(--live); animation:pulse 1.8s infinite; flex:none}
 
   #knockout{display:none}
   .ko-scroll{overflow-x:auto; padding:6px 2px 20px}
@@ -333,15 +337,17 @@ function fixturesFor(gl){
     return LIVE_MATCHES[gl].map(m=>{
       const h=canon(m.home), a=canon(m.away);
       return {id:`${gl}|${h}|${a}`, gl, h, a, kick:m.utcDate?fmtUK(new Date(m.utcDate)):'', live:true,
-        feedH:(m.hs===0||m.hs)?+m.hs:null, feedA:(m.as===0||m.as)?+m.as:null};
+        feedH:(m.hs===0||m.hs)?+m.hs:null, feedA:(m.as===0||m.as)?+m.as:null,
+        htH:(m.htH===0||m.htH)?+m.htH:null, htA:(m.htA===0||m.htA)?+m.htA:null,
+        status:m.status||""};
     });
   }
   const [p,q,r,s]=GROUPS[gl];
   const mk=(h,a,md,slot)=>({id:`${gl}|${h}|${a}`,gl,h,a,md,kick:placeholderKick(gl,md,slot),live:false,feedH:null,feedA:null});
   return [mk(p,q,1,0),mk(r,s,1,1),mk(p,r,2,0),mk(s,q,2,1),mk(s,p,3,0),mk(q,r,3,1)];
 }
-function getH(fx){if(fx.live&&fx.feedH!=null)return fx.feedH; const m=STATE.scores[fx.id]; return m&&m.h!=null&&m.h!==''?m.h:'';}
-function getA(fx){if(fx.live&&fx.feedA!=null)return fx.feedA; const m=STATE.scores[fx.id]; return m&&m.a!=null&&m.a!==''?m.a:'';}
+function getH(fx){if(fx.live&&fx.feedH!=null)return fx.feedH; if(fx.live&&fx.status==="IN_PLAY"&&fx.htH!=null)return fx.htH; const m=STATE.scores[fx.id]; return m&&m.h!=null&&m.h!==''?m.h:'';}
+function getA(fx){if(fx.live&&fx.feedA!=null)return fx.feedA; if(fx.live&&fx.status==="IN_PLAY"&&fx.htA!=null)return fx.htA; const m=STATE.scores[fx.id]; return m&&m.a!=null&&m.a!==''?m.a:'';}
 
 /* ============================================================
    5. RENDER HELPERS
@@ -420,11 +426,18 @@ function renderGroups(){
   }).join("");
   renderStandings(); bindScoreInputs();
 }
+function statusBadge(fx){
+  if(!fx.live) return '';
+  const s=fx.status;
+  if(s==='FINISHED') return '<div class="match-status ft">FT</div>';
+  if(s==='IN_PLAY'||s==='PAUSED') return '<div class="match-status live"><span class="dot"></span>Live</div>';
+  return '';
+}
 function renderFixture(fx){
   return `<div class="fixture">
     <div class="side home">${flagImg(fx.h)}<div class="meta"><span class="team">${fx.h}</span><span class="owner">${ownerOf(fx.h)}</span></div></div>
     <div class="center">
-      ${fx.kick?`<div class="kick">${fx.kick}</div>`:''}
+      ${statusBadge(fx)||fx.kick?`<div class="kick">${statusBadge(fx)||fx.kick}</div>`:''}
       <div class="scorebox">
         <input type="number" min="0" inputmode="numeric" data-id="${fx.id}" data-side="h" value="${getH(fx)}" class="${getH(fx)===''?'unset':''}" aria-label="${fx.h} score">
         <span class="sep">:</span>

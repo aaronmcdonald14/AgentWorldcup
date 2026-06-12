@@ -9,7 +9,7 @@ const API_URL = "https://api.football-data.org/v4/competitions/WC/matches";
 const CORS = { "Access-Control-Allow-Origin": "*", "Content-Type": "application/json", "Cache-Control": "no-store" };
 const CACHE_HEADERS = {
   "Cache-Control": "public, max-age=0, must-revalidate",
-  "Netlify-CDN-Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
+  "Netlify-CDN-Cache-Control": "public, s-maxage=60, stale-while-revalidate=30",
 };
 const reply = (obj, extra) => ({ statusCode: 200, headers: { ...CORS, ...(extra || {}) }, body: JSON.stringify(obj) });
 
@@ -24,6 +24,8 @@ async function fetchWC(KEY) {
     utcDate: m.utcDate || "",
     hs: m.score && m.score.fullTime ? m.score.fullTime.home : null,
     as: m.score && m.score.fullTime ? m.score.fullTime.away : null,
+    htH: m.score && m.score.halfTime ? m.score.halfTime.home : null,
+    htA: m.score && m.score.halfTime ? m.score.halfTime.away : null,
     status: m.status || "",
   })).filter(x => x.home && x.away);
   return { source: "football-data.org", count: matches.length, matches, updated: new Date().toISOString() };
