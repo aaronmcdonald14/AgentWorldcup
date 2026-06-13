@@ -327,18 +327,26 @@ function placeholderKick(gl,md,slot){
 
 /* unified fixtures: live matches when present, else round-robin */
 function fixturesFor(gl){
-  if(LIVE_MATCHES && LIVE_MATCHES[gl]){
-    return LIVE_MATCHES[gl].map(m=>{
-      const h=canon(m.home), a=canon(m.away);
-      return {id:`${gl}|${h}|${a}`, gl, h, a, kick:m.utcDate?fmtUK(new Date(m.utcDate)):'', live:true,
-        feedH:(m.hs===0||m.hs)?+m.hs:null, feedA:(m.as===0||m.as)?+m.as:null,
-        htH:(m.htH===0||m.htH)?+m.htH:null, htA:(m.htA===0||m.htA)?+m.htA:null,
-        status:m.status||""};
-    });
-  }
   const [p,q,r,s]=GROUPS[gl];
-  const mk=(h,a,md,slot)=>({id:`${gl}|${h}|${a}`,gl,h,a,md,kick:placeholderKick(gl,md,slot),live:false,feedH:null,feedA:null});
-  return [mk(p,q,1,0),mk(r,s,1,1),mk(p,r,2,0),mk(s,q,2,1),mk(s,p,3,0),mk(q,r,3,1)];
+  const mk=(h,a,md,slot)=>({id:`${gl}|${h}|${a}`,gl,h,a,md,kick:placeholderKick(gl,md,slot),live:false,feedH:null,feedA:null,htH:null,htA:null,status:""});
+  const base=[mk(p,q,1,0),mk(r,s,1,1),mk(p,r,2,0),mk(s,q,2,1),mk(s,p,3,0),mk(q,r,3,1)];
+  if(!LIVE_MATCHES||!LIVE_MATCHES[gl]) return base;
+  // Build lookup keyed by "home|away" in both orientations so the round-robin
+  // order always matches even if the API has teams swapped.
+  const api={};
+  LIVE_MATCHES[gl].forEach(m=>{
+    const h=canon(m.home),a=canon(m.away);
+    api[`${h}|${a}`]={...m};
+    api[`${a}|${h}`]={...m,home:m.away,away:m.home,hs:m.as,as:m.hs,htH:m.htA,htA:m.htH};
+  });
+  return base.map(fx=>{
+    const m=api[`${fx.h}|${fx.a}`];
+    if(!m) return fx;
+    return {...fx, live:true, kick:m.utcDate?fmtUK(new Date(m.utcDate)):fx.kick,
+      feedH:(m.hs===0||m.hs)?+m.hs:null, feedA:(m.as===0||m.as)?+m.as:null,
+      htH:(m.htH===0||m.htH)?+m.htH:null, htA:(m.htA===0||m.htA)?+m.htA:null,
+      status:m.status||""};
+  });
 }
 function getH(fx){if(fx.live&&fx.feedH!=null)return fx.feedH; if(fx.live&&fx.status==="IN_PLAY"&&fx.htH!=null)return fx.htH; const m=STATE.scores[fx.id]; return m&&m.h!=null&&m.h!==''?m.h:'';}
 function getA(fx){if(fx.live&&fx.feedA!=null)return fx.feedA; if(fx.live&&fx.status==="IN_PLAY"&&fx.htA!=null)return fx.htA; const m=STATE.scores[fx.id]; return m&&m.a!=null&&m.a!==''?m.a:'';}
