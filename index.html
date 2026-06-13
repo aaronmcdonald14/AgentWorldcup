@@ -234,7 +234,7 @@ const norm=s=>(s||"").toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,
 const NORMMAP=Object.fromEntries(TEAMS.map(t=>[norm(t.name),t.name]));
 const ALIAS={korearepublic:"South Korea",republicofkorea:"South Korea",unitedstates:"USA",unitedstatesofamerica:"USA",
   turkiye:"Turkey",iriran:"Iran",cotedivoire:"Ivory Coast",czechia:"Czech Republic",congodr:"DR Congo",
-  drcongo:"DR Congo",caboverde:"Cape Verde",bosniaandherzegovina:"Bosnia"};
+  drcongo:"DR Congo",caboverde:"Cape Verde",bosniaandherzegovina:"Bosnia",bosniaherzegovina:"Bosnia"};
 function canon(name){const n=norm(name); return ALIAS[n]||NORMMAP[n]||name;}
 
 /* ============================================================
