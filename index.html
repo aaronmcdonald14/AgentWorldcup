@@ -40,16 +40,14 @@
     line-height:1.45; -webkit-font-smoothing:antialiased;
   }
   header{
-    position:sticky; top:0; z-index:50; color:#fff; padding:20px 20px 18px;
+    position:sticky; top:0; z-index:50; color:#fff; padding:14px 20px 12px;
     background:linear-gradient(125deg,var(--brand-deep),var(--brand) 55%,var(--brand-bright));
     box-shadow:0 6px 26px rgba(74,29,150,.28);
   }
-  .head-inner{max-width:1180px; margin:0 auto; display:flex; align-items:center; gap:16px; flex-wrap:wrap}
-  .crest{
-    width:46px; height:46px; flex:none; border-radius:13px; display:grid; place-items:center;
-    background:rgba(255,255,255,.14); font-size:23px; box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.28);
-  }
-  .titles h1{font-size:20px; margin:0; letter-spacing:-.2px; font-weight:800}
+  .head-inner{max-width:1180px; margin:0 auto; display:flex; align-items:center; gap:12px; flex-wrap:nowrap}
+  .crest-img{width:36px; height:36px; flex:none; object-fit:contain}
+  .titles{min-width:0; flex:1}
+  .titles h1{font-size:18px; margin:0; letter-spacing:-.2px; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .titles p{margin:2px 0 0; font-size:12.5px; color:#e6dcfb; letter-spacing:.3px}
   .head-status{margin-left:auto; display:flex; align-items:center; gap:9px; flex-wrap:wrap}
   .pill{
@@ -169,16 +167,24 @@
   .view-title{font-size:22px; font-weight:800; margin:0 2px 4px; letter-spacing:-.2px}
   .view-sub{margin:0 2px 20px; color:var(--muted); font-size:13.5px}
 
-  @media (max-width:600px){ .groups{grid-template-columns:1fr} .side .owner{font-size:16px} .titles h1{font-size:17px} }
+  @media (max-width:600px){
+    .groups{grid-template-columns:1fr} .side .owner{font-size:16px}
+    header{padding:10px 12px 9px}
+    .head-inner{gap:8px}
+    .titles h1{font-size:15px}
+    .crest-img{width:28px; height:28px}
+    .btn-header{padding:5px 10px; font-size:11px}
+    .btn-info{width:26px; height:26px; font-size:12px}
+  }
   @media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
 </style>
 </head>
 <body>
 <header>
   <div class="head-inner">
-    <div class="crest">⚽</div>
+    <img src="/logo.png" alt="" class="crest-img">
     <div class="titles">
-      <h1>Agent World Cup Sweep 2026</h1>
+      <h1>Agent World Cup 26</h1>
     </div>
     <div class="head-actions">
       <button class="btn-header" id="toggleBtn"><span class="arrow">→</span><span id="toggleLabel">Knockout</span></button>
