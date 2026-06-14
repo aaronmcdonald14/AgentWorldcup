@@ -75,17 +75,20 @@
   .section-label h2{font-size:15px; margin:0; font-weight:800}
 
   .board-wrap{margin-bottom:28px}
-  .leaderboard{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:10px}
-  .lb-card{background:var(--card); border:1px solid var(--line); border-radius:var(--r-sm);
-    padding:11px 12px; box-shadow:var(--shadow); position:relative; overflow:hidden}
-  .lb-card .rank{font-size:11px; font-weight:800; color:var(--muted)}
+  .leaderboard{background:var(--card); border:1px solid var(--line); border-radius:var(--r); box-shadow:var(--shadow); overflow:hidden}
+  .lb-row{display:flex; align-items:center; gap:12px; padding:9px 14px}
+  .lb-row+.lb-row{border-top:1px solid var(--line)}
+  .lb-row.lead-1{background:#fffaeb; box-shadow:inset 3px 0 0 var(--gold)}
+  .lb-rank{font-size:11px; font-weight:800; color:var(--muted); width:16px; flex:none; text-align:center}
   .lb-name{font-family:var(--plate); font-weight:800; text-transform:uppercase; letter-spacing:.6px;
-    font-size:16px; margin:2px 0 4px; line-height:1.05; color:var(--brand-deep)}
-  .lb-card.zero .lb-name{color:#c8c0d8}
-  .lb-stats{display:flex; gap:12px; font-size:12px; color:var(--muted)}
-  .lb-pts{color:var(--ink); font-weight:800}
-  .lb-card.lead-1{border-color:var(--gold)}
-  .lb-card.lead-1::before{content:"★"; position:absolute; top:8px; right:10px; color:var(--gold); font-size:13px}
+    font-size:16px; line-height:1; color:var(--brand-deep); flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .lb-row.zero .lb-name{color:#c8c0d8}
+  .lb-right{display:flex; align-items:center; gap:10px; flex:none}
+  .lb-flags{display:flex; gap:3px}
+  .lb-flag{width:22px; height:15px; border-radius:2px; object-fit:cover; flex:none; box-shadow:0 0 0 1px rgba(36,26,58,.1)}
+  .lb-flag-emoji{width:22px; height:15px; border-radius:2px; display:grid; place-items:center; font-size:11px; background:#efeaf8; flex:none}
+  .lb-pts-val{font-size:14px; font-weight:800; color:var(--ink); min-width:26px; text-align:right}
+  .lb-pts-label{font-size:10px; font-weight:700; color:var(--muted)}
 
   .groups{display:grid; grid-template-columns:repeat(auto-fill,minmax(360px,1fr)); gap:18px}
   .group{background:var(--card); border:1px solid var(--line); border-radius:var(--r-lg);
@@ -398,7 +401,11 @@ function computeStandings(gl){
   return out;
 }
 function leaderboard(){
-  const acc={}; TEAMS.forEach(t=>{(acc[t.owner]=acc[t.owner]||{owner:t.owner,Pts:0,W:0,GF:0,teams:0}).teams++});
+  const acc={};
+  TEAMS.forEach(t=>{
+    if(!acc[t.owner]) acc[t.owner]={owner:t.owner,Pts:0,W:0,GF:0,teamList:[]};
+    acc[t.owner].teamList.push(t);
+  });
   KEYS().forEach(gl=>fixturesFor(gl).forEach(fx=>{
     const h=getH(fx),a=getA(fx); if(h===''||a==='') return;
     const oh=ownerOf(fx.h),oa=ownerOf(fx.a); if(!acc[oh]||!acc[oa]) return;
@@ -410,12 +417,18 @@ function leaderboard(){
 
 function render(){renderLeaderboard(); renderGroups();}
 function renderLeaderboard(){
-  document.getElementById("leaderboard").innerHTML=leaderboard().map((r,i)=>`
-    <div class="lb-card ${i===0&&r.Pts>0?'lead-1':''} ${r.Pts===0?'zero':''}">
-      <div class="rank">${i+1}${i===0&&r.Pts>0?' · leader':''}</div>
-      <div class="lb-name">${r.owner}</div>
-      <div class="lb-stats"><span><span class="lb-pts">${r.Pts}</span> pts</span><span>${r.W} W</span><span>${r.teams} ${r.teams>1?'teams':'team'}</span></div>
-    </div>`).join("");
+  document.getElementById("leaderboard").innerHTML=leaderboard().map((r,i)=>{
+    const flags=r.teamList.map(t=>`<img class="lb-flag" src="https://flagcdn.com/w40/${t.code}.png" alt="${t.name}"
+      onerror="this.outerHTML='<span class=&quot;lb-flag-emoji&quot;>${t.emoji}</span>'">`).join("");
+    return `<div class="lb-row ${i===0&&r.Pts>0?'lead-1':''} ${r.Pts===0?'zero':''}">
+      <span class="lb-rank">${i+1}</span>
+      <span class="lb-name">${r.owner}</span>
+      <div class="lb-right">
+        <div class="lb-flags">${flags}</div>
+        <span class="lb-pts-val">${r.Pts}</span><span class="lb-pts-label">pts</span>
+      </div>
+    </div>`;
+  }).join("");
 }
 function renderGroups(){
   document.getElementById("groups").innerHTML=KEYS().map(gl=>{
