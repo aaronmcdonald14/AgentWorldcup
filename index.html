@@ -63,6 +63,17 @@
   .btn-refresh{background:rgba(255,255,255,.16); color:#fff; border:1px solid rgba(255,255,255,.22);
     padding:7px 14px; border-radius:999px; font-size:12px; font-weight:700; cursor:pointer}
   .btn-refresh:hover{background:rgba(255,255,255,.28)}
+  .head-actions{margin-left:auto; display:flex; align-items:center; gap:8px}
+  .btn-header{background:rgba(255,255,255,.16); color:#fff; border:1px solid rgba(255,255,255,.22);
+    padding:7px 14px; border-radius:999px; font-size:12px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:6px}
+  .btn-header:hover{background:rgba(255,255,255,.28)}
+  .btn-info{width:30px; height:30px; border-radius:50%; background:rgba(255,255,255,.16); color:#fff;
+    border:1px solid rgba(255,255,255,.22); font-size:14px; font-weight:800; cursor:pointer;
+    display:grid; place-items:center; font-style:italic; font-family:Georgia,serif; line-height:1}
+  .btn-info:hover{background:rgba(255,255,255,.28)}
+  .info-panel{display:none; align-items:center; gap:9px; flex-wrap:wrap;
+    max-width:1180px; margin:0 auto; padding:10px 20px 14px; border-top:1px solid rgba(255,255,255,.15)}
+  .info-panel.is-open{display:flex}
 
   main{max-width:1180px; margin:0 auto; padding:22px 18px 120px}
   .lead{display:flex; gap:14px; background:var(--card); border:1px solid var(--line);
@@ -155,13 +166,6 @@
   .ko-slot.win{background:var(--brand-tint); border-radius:7px}
   .ko-note{text-align:center; color:var(--muted); font-size:12px; margin:4px auto 18px; max-width:560px}
 
-  .toggle-bar{position:fixed; left:0; right:0; bottom:0; z-index:60; display:flex; justify-content:center;
-    padding:14px 16px calc(14px + env(safe-area-inset-bottom)); background:linear-gradient(to top,var(--bg) 55%,rgba(246,243,252,0)); pointer-events:none}
-  .toggle-btn{pointer-events:auto; border:none; cursor:pointer; font-weight:800; font-size:14px; letter-spacing:.3px;
-    color:#fff; padding:15px 30px; border-radius:999px; background:linear-gradient(135deg,var(--brand),var(--brand-deep));
-    box-shadow:0 8px 26px rgba(74,29,150,.42); display:inline-flex; align-items:center; gap:9px; transition:transform .12s, box-shadow .12s}
-  .toggle-btn:hover{transform:translateY(-2px); box-shadow:0 12px 30px rgba(74,29,150,.5)}
-  .toggle-btn:active{transform:translateY(0)}
   .view-title{font-size:22px; font-weight:800; margin:0 2px 4px; letter-spacing:-.2px}
   .view-sub{margin:0 2px 20px; color:var(--muted); font-size:13.5px}
 
@@ -175,13 +179,16 @@
     <div class="crest">⚽</div>
     <div class="titles">
       <h1>Agent World Cup Sweep 2026</h1>
-      <p>48 teams · 21 players · Canada · Mexico · USA</p>
     </div>
-    <div class="head-status">
-      <span class="pill" id="statusPill"><span class="dot"></span><span id="statusText">Manual mode</span></span>
-      <span class="pill" id="updatedPill" style="display:none"></span>
-      <button class="btn-refresh" id="refreshBtn">Refresh</button>
+    <div class="head-actions">
+      <button class="btn-header" id="toggleBtn"><span class="arrow">→</span><span id="toggleLabel">Knockout</span></button>
+      <button class="btn-info" id="infoBtn" aria-label="Status info">i</button>
     </div>
+  </div>
+  <div class="info-panel" id="infoPanel">
+    <span class="pill" id="statusPill"><span class="dot"></span><span id="statusText">Manual mode</span></span>
+    <span class="pill" id="updatedPill"></span>
+    <button class="btn-refresh" id="refreshBtn">Refresh</button>
   </div>
 </header>
 
@@ -202,10 +209,6 @@
     <p class="ko-note">Third place play-off &amp; final are decided here. Penalty shoot-out? Nudge a score by one to set who goes through.</p>
   </section>
 </main>
-
-<div class="toggle-bar">
-  <button class="toggle-btn" id="toggleBtn"><span class="arrow">→</span><span id="toggleLabel">View knockout stage</span></button>
-</div>
 
 <script>
 /* ============================================================
@@ -530,9 +533,12 @@ document.getElementById("toggleBtn").addEventListener("click",()=>{
   showingKO=!showingKO;
   document.getElementById("groupsView").style.display=showingKO?"none":"block";
   document.getElementById("knockout").style.display=showingKO?"block":"none";
-  document.getElementById("toggleLabel").textContent=showingKO?"Back to groups":"View knockout stage";
-  document.querySelector(".toggle-btn .arrow").textContent=showingKO?"←":"→";
+  document.getElementById("toggleLabel").textContent=showingKO?"Groups":"Knockout";
+  document.querySelector("#toggleBtn .arrow").textContent=showingKO?"←":"→";
   if(showingKO) renderKnockout(); window.scrollTo({top:0,behavior:"smooth"});
+});
+document.getElementById("infoBtn").addEventListener("click",()=>{
+  document.getElementById("infoPanel").classList.toggle("is-open");
 });
 function stamp(){const p=document.getElementById("updatedPill"); p.style.display="inline-flex"; p.textContent="Updated "+new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});}
 async function refresh(force){
