@@ -147,7 +147,7 @@
   .match-status.live{color:var(--live); display:flex; align-items:center; gap:4px}
   .match-status.live .dot{width:6px; height:6px; border-radius:50%; background:var(--live); animation:pulse 1.8s infinite; flex:none}
 
-  #knockout{display:none}
+  #groupsView{display:none}
   .ko-scroll{overflow-x:auto; padding:6px 2px 20px}
   .bracket{display:flex; gap:26px; min-width:max-content; align-items:stretch}
   .round{display:flex; flex-direction:column; justify-content:space-around; gap:14px; min-width:236px}
@@ -187,7 +187,7 @@
       <h1>Agent World Cup 26</h1>
     </div>
     <div class="head-actions">
-      <button class="btn-header" id="toggleBtn"><span class="arrow">→</span><span id="toggleLabel">Knockout</span></button>
+      <button class="btn-header" id="toggleBtn"><span class="arrow">→</span><span id="toggleLabel">Groups</span></button>
       <button class="btn-info" id="infoBtn" aria-label="Status info">i</button>
     </div>
   </div>
@@ -265,6 +265,7 @@ let GROUPS={
   K:["Portugal","DR Congo","Uzbekistan","Colombia"], L:["England","Croatia","Ghana","Panama"],
 };
 let LIVE_MATCHES=null;   // {A:[{home,away,utcDate,hs,as}], ...} when feed is connected
+let KO_MATCHES=null;     // [{home,away,utcDate,hs,as,stage,...}] knockout fixtures from API
 let OFFICIAL_STANDINGS=null; // {A:[{team,position,P,W,D,L,GF,GA,Pts}], ...} from FIFA standings
 let DATA_SOURCE="manual";
 
@@ -297,6 +298,15 @@ async function pullFeed(force){
     });
     for(const k in by) by[k].sort((x,y)=>new Date(x.utcDate)-new Date(y.utcDate));
     if(Object.keys(by).length) LIVE_MATCHES=by;
+    const koList=[];
+    d.matches.forEach(m=>{
+      if(!m.home||!m.away) return;
+      const h=canon(m.home),a=canon(m.away),gh=t2g[h],ga=t2g[a];
+      if(gh&&gh===ga) return; // group stage — already handled
+      koList.push(m);
+    });
+    koList.sort((x,y)=>new Date(x.utcDate)-new Date(y.utcDate));
+    if(koList.length) KO_MATCHES=koList;
   }
   DATA_SOURCE=d.source||"feed";
   try{ if(LIVE_MATCHES) localStorage.setItem(FEED_CACHE, JSON.stringify({t:Date.now(),src:DATA_SOURCE,m:LIVE_MATCHES})); }catch(e){}
@@ -498,6 +508,7 @@ function bindScoreInputs(){
    6. KNOCKOUT BRACKET
    ============================================================ */
 const RNDS=[{key:"R32",title:"Round of 32",n:16},{key:"R16",title:"Round of 16",n:8},{key:"QF",title:"Quarter-finals",n:4},{key:"SF",title:"Semi-finals",n:2},{key:"F",title:"Final",n:1}];
+const stageMap={R32:"LAST_32",R16:"LAST_16",QF:"QUARTER_FINALS",SF:"SEMI_FINALS",F:"FINAL","3P":"THIRD_PLACE"};
 function provisional(){
   const order=KEYS(),first=[],second=[];
   order.forEach(gl=>{const s=computeStandings(gl); first.push(s[0]?.team||""); second.push(s[1]?.team||"");});
@@ -505,8 +516,31 @@ function provisional(){
   for(let i=0;i<order.length;i+=2){seeds.push(first[i],second[i+1]??"",first[i+1]??"",second[i]??"");}
   while(seeds.length<32) seeds.push(""); return seeds;
 }
-function koGet(r,m,s){const k=`${r}-${m}-${s}`; if(STATE.ko[k]!=null)return STATE.ko[k]; if(r==="R32"){const sd=provisional(); return sd[m*2+(s==="h"?0:1)]||"";} return "";}
-function koSc(r,m,s){const v=STATE.ko[`${r}-${m}-${s}-sc`]; return v==null?"":v;}
+function koApiMatch(r,m){
+  if(!KO_MATCHES) return null;
+  const st=stageMap[r]; if(!st) return null;
+  return KO_MATCHES.filter(x=>x.stage===st)[m]||null;
+}
+function koGet(r,m,s){
+  const k=`${r}-${m}-${s}`; if(STATE.ko[k]!=null)return STATE.ko[k];
+  const api=koApiMatch(r,m);
+  if(api) return s==="h"?canon(api.home):canon(api.away);
+  if(r==="R32"){const sd=provisional(); return sd[m*2+(s==="h"?0:1)]||"";}
+  return "";
+}
+function koSc(r,m,s){
+  const manual=STATE.ko[`${r}-${m}-${s}-sc`]; if(manual!=null&&manual!=="")return manual;
+  const api=koApiMatch(r,m);
+  if(api&&api.status==="FINISHED"){const v=s==="h"?api.hs:api.as; if(v!=null)return v;}
+  return "";
+}
+function koStatus(r,m){
+  const api=koApiMatch(r,m); if(!api) return "";
+  if(api.status==="FINISHED") return '<div class="match-status ft">FT</div>';
+  if(api.status==="IN_PLAY"||api.status==="PAUSED") return '<div class="match-status live"><span class="dot"></span>Live</div>';
+  if(api.utcDate){const d=new Date(api.utcDate),now=new Date(); if(d>now) return `<div class="match-status" style="color:var(--muted)">${fmtUK(d)}</div>`;}
+  return "";
+}
 function koWin(r,m){const h=koSc(r,m,"h"),a=koSc(r,m,"a"); if(h===""||a==="")return ""; return +h>+a?koGet(r,m,"h"):+a>+h?koGet(r,m,"a"):"";}
 function advance(){
   for(let r=0;r<RNDS.length-1;r++){const c=RNDS[r],n=RNDS[r+1];
@@ -524,8 +558,8 @@ function koSlot(r,m,s){const t=koGet(r,m,s),win=(koWin(r,m)===t&&t!=="");
 function renderKnockout(){
   advance();
   let html=RNDS.map(rd=>`<div class="round"><div class="round-title">${rd.title}</div>
-    ${Array.from({length:rd.n},(_,m)=>`<div class="ko-match ${rd.key==='F'?'final':''}">${koSlot(rd.key,m,"h")}${koSlot(rd.key,m,"a")}</div>`).join("")}</div>`).join("");
-  html+=`<div class="round" style="justify-content:flex-start"><div class="round-title">Third place</div><div class="ko-match">${koSlot("3P",0,"h")}${koSlot("3P",0,"a")}</div></div>`;
+    ${Array.from({length:rd.n},(_,m)=>`<div class="ko-match ${rd.key==='F'?'final':''}">${koSlot(rd.key,m,"h")}${koStatus(rd.key,m)}${koSlot(rd.key,m,"a")}</div>`).join("")}</div>`).join("");
+  html+=`<div class="round" style="justify-content:flex-start"><div class="round-title">Third place</div><div class="ko-match">${koSlot("3P",0,"h")}${koStatus("3P",0)}${koSlot("3P",0,"a")}</div></div>`;
   const br=document.getElementById("bracket"); br.innerHTML=html;
   br.querySelectorAll('.ko-pick').forEach(s=>s.addEventListener('change',e=>{STATE.ko[`${e.target.dataset.r}-${e.target.dataset.m}-${e.target.dataset.side}`]=e.target.value; save(); renderKnockout();}));
   br.querySelectorAll('.ko-sc').forEach(i=>i.addEventListener('input',e=>{const v=e.target.value===''?'':Math.max(0,parseInt(e.target.value)||0); STATE.ko[`${e.target.dataset.r}-${e.target.dataset.m}-${e.target.dataset.side}-sc`]=v; save(); renderKnockout();}));
@@ -534,13 +568,13 @@ function renderKnockout(){
 /* ============================================================
    7. VIEW TOGGLE + REFRESH (every 30 min + on load)
    ============================================================ */
-let showingKO=false;
+let showingKO=true;
 document.getElementById("toggleBtn").addEventListener("click",()=>{
   showingKO=!showingKO;
   document.getElementById("groupsView").style.display=showingKO?"none":"block";
   document.getElementById("knockout").style.display=showingKO?"block":"none";
   document.getElementById("toggleLabel").textContent=showingKO?"Groups":"Knockout";
-  document.querySelector("#toggleBtn .arrow").textContent=showingKO?"←":"→";
+  document.querySelector("#toggleBtn .arrow").textContent=showingKO?"→":"←";
   if(showingKO) renderKnockout(); window.scrollTo({top:0,behavior:"smooth"});
 });
 document.getElementById("infoBtn").addEventListener("click",()=>{
@@ -559,7 +593,7 @@ async function refresh(force){
 document.getElementById("refreshBtn").addEventListener("click",()=>refresh(true));
 
 hydrateFeed();               // last-known scores appear instantly, before the network
-render(); stamp(); refresh(false);
+render(); renderKnockout(); stamp(); refresh(false);
 setInterval(()=>refresh(false), 60*1000); /* check for new scores every minute */
 </script>
 </body>

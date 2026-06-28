@@ -22,6 +22,7 @@ async function fetchWC(KEY) {
     htH: m.score && m.score.halfTime ? m.score.halfTime.home : null,
     htA: m.score && m.score.halfTime ? m.score.halfTime.away : null,
     status: m.status || "",
+    stage: m.stage || "",
   })).filter(x => x.home && x.away);
   return { source: "football-data.org", count: matches.length, matches, updated: new Date().toISOString() };
 }
