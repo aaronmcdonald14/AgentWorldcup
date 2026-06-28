@@ -100,8 +100,9 @@
   .lb-pts-label{font-size:10px; font-weight:700; color:var(--muted)}
 
   .groups{display:grid; grid-template-columns:repeat(auto-fill,minmax(360px,1fr)); gap:18px}
+  .group-wrap{display:flex; flex-direction:column}
   .group{background:var(--card); border:1px solid var(--line); border-radius:var(--r-lg);
-    box-shadow:var(--shadow); overflow:hidden; display:flex; flex-direction:column}
+    box-shadow:var(--shadow); display:flex; flex-direction:column}
   .group-head{display:flex; align-items:center; gap:11px; padding:14px 16px 12px; border-bottom:1px solid var(--line)}
   .group-badge{width:34px; height:34px; border-radius:10px; flex:none; display:grid; place-items:center;
     background:linear-gradient(135deg,var(--brand),var(--brand-deep)); color:#fff; font-weight:800; font-size:15px}
@@ -122,11 +123,11 @@
     font-size:11px; color:var(--brand); margin-top:1px}
   .standings .pts{font-weight:800; color:var(--ink)}
 
-  .fixtures{padding:6px 12px 14px}
-  .fx-label{font-size:9.5px; letter-spacing:1px; text-transform:uppercase; color:var(--muted); font-weight:800; margin:12px 6px 4px}
-  .fx-date-row{font-size:10px; font-weight:700; color:var(--muted); letter-spacing:.4px; padding:10px 6px 2px; text-transform:uppercase}
-  .fixture{display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:8px; padding:8px 6px}
-  .fixture + .fixture{border-top:1px solid var(--line)}
+  .fixtures{padding:0; display:flex; flex-direction:column; gap:4px; margin-top:6px}
+  .fx-label{font-size:9.5px; letter-spacing:1px; text-transform:uppercase; color:var(--muted); font-weight:800; margin:10px 4px 0; padding-top:2px}
+  .fx-date-row{font-size:10px; font-weight:700; color:var(--muted); letter-spacing:.4px; padding:8px 4px 0; text-transform:uppercase}
+  .fixture{display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:8px; padding:10px 12px; background:var(--card); border:1px solid var(--line); border-radius:10px; box-shadow:var(--shadow)}
+  .fixture + .fixture{border-top:none}
   .side{display:flex; align-items:center; gap:9px; min-width:0}
   .side.away{flex-direction:row-reverse; text-align:right}
   .side .flag{width:30px; height:20px; border-radius:3px; object-fit:cover; flex:none; box-shadow:0 0 0 1px rgba(36,26,58,.12), var(--shadow)}
@@ -460,11 +461,13 @@ function renderGroups(){
     const fx=fixturesFor(gl);
     const rows = fx.some(f=>f.md) ? [1,2,3].map(md=>({label:'Matchday '+md, list:fx.filter(f=>f.md===md)}))
                                   : [{label:'Fixtures', list:fx}];
-    return `<div class="group">
-      <div class="group-head"><div class="group-badge">${gl}</div>
-        <div><h3>Group ${gl}</h3><div class="sub">${GROUPS[gl].length} teams · ${fx.length} matches</div></div></div>
-      <table class="standings"><thead><tr><th class="team">Team</th><th>P</th><th>W</th><th>D</th><th>L</th><th>+/−</th><th>Pts</th></tr></thead>
-        <tbody id="st-${gl}"></tbody></table>
+    return `<div class="group-wrap">
+      <div class="group">
+        <div class="group-head"><div class="group-badge">${gl}</div>
+          <div><h3>Group ${gl}</h3><div class="sub">${GROUPS[gl].length} teams · ${fx.length} matches</div></div></div>
+        <table class="standings"><thead><tr><th class="team">Team</th><th>P</th><th>W</th><th>D</th><th>L</th><th>+/−</th><th>Pts</th></tr></thead>
+          <tbody id="st-${gl}"></tbody></table>
+      </div>
       <div class="fixtures">${rows.map(r=>`<div class="fx-label">${r.label}</div>${r.list.map(fx=>`${fx.kick?`<div class="fx-date-row">${fx.kick}</div>`:''}${renderFixture(fx)}`).join("")}`).join("")}</div>
     </div>`;
   }).join("");
