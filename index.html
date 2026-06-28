@@ -157,7 +157,8 @@
   .ko-slot{display:flex; align-items:center; gap:8px}
   .ko-slot .flag{width:26px; height:17px; border-radius:3px; object-fit:cover; flex:none; box-shadow:0 0 0 1px rgba(36,26,58,.12)}
   .ko-slot .flag.blank{background:#e9e4f3; box-shadow:none}
-  .ko-pick{flex:1; min-width:0; border:1px solid var(--line); border-radius:7px; background:#f8f5fd; font-size:12px; font-weight:600; color:var(--ink); padding:5px 6px; font-family:inherit}
+  .ko-team{font-size:12px; font-weight:700; flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:var(--ink)}
+  .ko-tbd{color:var(--muted); font-style:italic}
   .ko-owner{font-family:var(--plate); text-transform:uppercase; font-weight:800; letter-spacing:.5px; font-size:12px; color:var(--brand); width:74px; flex:none; text-align:right; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .ko-sc{width:30px; height:28px; border:1px solid var(--line); border-radius:6px; text-align:center; font-weight:800; font-size:14px; flex:none; -moz-appearance:textfield; background:#fff; color:var(--ink)}
   .ko-sc::-webkit-outer-spin-button,.ko-sc::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
@@ -210,7 +211,7 @@
 
   <section id="knockout">
     <h2 class="view-title">Knockout stage</h2>
-    <p class="view-sub">Provisional bracket from current group positions. Swap any team with the dropdowns; winners advance as you enter scores.</p>
+
     <div class="ko-scroll"><div class="bracket" id="bracket"></div></div>
     <p class="ko-note">Third place play-off &amp; final are decided here. Penalty shoot-out? Nudge a score by one to set who goes through.</p>
   </section>
@@ -549,9 +550,9 @@ function advance(){
   ["h","a"].forEach((s,i)=>{const w=koWin("SF",i); const l=w?(w===koGet("SF",i,"h")?koGet("SF",i,"a"):koGet("SF",i,"h")):""; if(l)STATE.ko[`3P-0-${s}`]=l; else delete STATE.ko[`3P-0-${s}`];});
   save();
 }
-const teamOpts=sel=>`<option value="">— pick —</option>`+TEAMS.map(t=>`<option value="${t.name}" ${t.name===sel?'selected':''}>${t.name} (${t.owner})</option>`).join("");
 function koSlot(r,m,s){const t=koGet(r,m,s),win=(koWin(r,m)===t&&t!=="");
-  return `<div class="ko-slot ${win?'win':''}">${flagImg(t)}<select class="ko-pick" data-r="${r}" data-m="${m}" data-side="${s}">${teamOpts(t)}</select>
+  const nameHtml=t?`<span class="ko-team">${t}</span>`:`<span class="ko-team ko-tbd">TBD</span>`;
+  return `<div class="ko-slot ${win?'win':''}">${flagImg(t)}${nameHtml}
     <span class="ko-owner">${t?ownerOf(t):''}</span>
     <input class="ko-sc" type="number" min="0" inputmode="numeric" data-r="${r}" data-m="${m}" data-side="${s}" value="${koSc(r,m,s)}" aria-label="score"></div>`;
 }
@@ -561,7 +562,6 @@ function renderKnockout(){
     ${Array.from({length:rd.n},(_,m)=>`<div class="ko-match ${rd.key==='F'?'final':''}">${koSlot(rd.key,m,"h")}${koStatus(rd.key,m)}${koSlot(rd.key,m,"a")}</div>`).join("")}</div>`).join("");
   html+=`<div class="round" style="justify-content:flex-start"><div class="round-title">Third place</div><div class="ko-match">${koSlot("3P",0,"h")}${koStatus("3P",0)}${koSlot("3P",0,"a")}</div></div>`;
   const br=document.getElementById("bracket"); br.innerHTML=html;
-  br.querySelectorAll('.ko-pick').forEach(s=>s.addEventListener('change',e=>{STATE.ko[`${e.target.dataset.r}-${e.target.dataset.m}-${e.target.dataset.side}`]=e.target.value; save(); renderKnockout();}));
   br.querySelectorAll('.ko-sc').forEach(i=>i.addEventListener('input',e=>{const v=e.target.value===''?'':Math.max(0,parseInt(e.target.value)||0); STATE.ko[`${e.target.dataset.r}-${e.target.dataset.m}-${e.target.dataset.side}-sc`]=v; save(); renderKnockout();}));
 }
 
