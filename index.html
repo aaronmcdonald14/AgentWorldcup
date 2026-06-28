@@ -124,7 +124,8 @@
 
   .fixtures{padding:6px 12px 14px}
   .fx-label{font-size:9.5px; letter-spacing:1px; text-transform:uppercase; color:var(--muted); font-weight:800; margin:12px 6px 4px}
-  .fixture{display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:8px; padding:11px 6px}
+  .fx-date-row{font-size:10px; font-weight:700; color:var(--muted); letter-spacing:.4px; padding:10px 6px 2px; text-transform:uppercase}
+  .fixture{display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:8px; padding:8px 6px}
   .fixture + .fixture{border-top:1px solid var(--line)}
   .side{display:flex; align-items:center; gap:9px; min-width:0}
   .side.away{flex-direction:row-reverse; text-align:right}
@@ -148,10 +149,13 @@
   .match-status.live .dot{width:6px; height:6px; border-radius:50%; background:var(--live); animation:pulse 1.8s infinite; flex:none}
 
   #groupsView{display:none}
+  #ko-rounds-nav{position:sticky; top:var(--header-h,72px); z-index:20; background:var(--bg); overflow:hidden; border-bottom:1px solid var(--line); margin-bottom:6px}
+  #ko-nav-inner{display:flex; gap:26px; min-width:max-content; padding:8px 2px}
+  .ko-nav-title{min-width:236px; font-size:11px; font-weight:800; letter-spacing:1.2px; text-transform:uppercase; color:var(--brand); text-align:center}
   .ko-scroll{overflow-x:auto; padding:6px 2px 20px}
   .bracket{display:flex; gap:26px; min-width:max-content; align-items:stretch}
   .round{display:flex; flex-direction:column; justify-content:space-around; gap:14px; min-width:236px}
-  .round-title{font-size:11px; font-weight:800; letter-spacing:1.2px; text-transform:uppercase; color:var(--brand); text-align:center; margin-bottom:2px}
+  .round-title{display:none}
   .ko-match{background:var(--card); border:1px solid var(--line); border-radius:12px; box-shadow:var(--shadow); padding:8px; display:flex; flex-direction:column; gap:6px}
   .ko-match.final{border-color:var(--gold); box-shadow:var(--shadow-lg)}
   .ko-slot{display:flex; align-items:center; gap:8px}
@@ -212,7 +216,8 @@
   <section id="knockout">
     <h2 class="view-title">Knockout stage</h2>
 
-    <div class="ko-scroll"><div class="bracket" id="bracket"></div></div>
+    <div id="ko-rounds-nav"><div id="ko-nav-inner"></div></div>
+  <div class="ko-scroll"><div class="bracket" id="bracket"></div></div>
     <p class="ko-note">Third place play-off &amp; final are decided here. Penalty shoot-out? Nudge a score by one to set who goes through.</p>
   </section>
 </main>
@@ -460,7 +465,7 @@ function renderGroups(){
         <div><h3>Group ${gl}</h3><div class="sub">${GROUPS[gl].length} teams · ${fx.length} matches</div></div></div>
       <table class="standings"><thead><tr><th class="team">Team</th><th>P</th><th>W</th><th>D</th><th>L</th><th>+/−</th><th>Pts</th></tr></thead>
         <tbody id="st-${gl}"></tbody></table>
-      <div class="fixtures">${rows.map(r=>`<div class="fx-label">${r.label}</div>${r.list.map(renderFixture).join("")}`).join("")}</div>
+      <div class="fixtures">${rows.map(r=>`<div class="fx-label">${r.label}</div>${r.list.map(fx=>`${fx.kick?`<div class="fx-date-row">${fx.kick}</div>`:''}${renderFixture(fx)}`).join("")}`).join("")}</div>
     </div>`;
   }).join("");
   renderStandings(); bindScoreInputs();
@@ -476,7 +481,7 @@ function renderFixture(fx){
   return `<div class="fixture">
     <div class="side home">${flagImg(fx.h)}<div class="meta"><span class="team">${fx.h}</span><span class="owner">${ownerOf(fx.h)}</span></div></div>
     <div class="center">
-      ${statusBadge(fx)||fx.kick?`<div class="kick">${statusBadge(fx)||fx.kick}</div>`:''}
+      ${statusBadge(fx)?`<div class="kick">${statusBadge(fx)}</div>`:''}
       <div class="scorebox">
         <input type="number" min="0" inputmode="numeric" data-id="${fx.id}" data-side="h" value="${getH(fx)}" class="${getH(fx)===''?'unset':''}" aria-label="${fx.h} score">
         <span class="sep">:</span>
@@ -558,10 +563,12 @@ function koSlot(r,m,s){const t=koGet(r,m,s),win=(koWin(r,m)===t&&t!=="");
 }
 function renderKnockout(){
   advance();
-  let html=RNDS.map(rd=>`<div class="round"><div class="round-title">${rd.title}</div>
+  let html=RNDS.map(rd=>`<div class="round">
     ${Array.from({length:rd.n},(_,m)=>`<div class="ko-match ${rd.key==='F'?'final':''}">${koSlot(rd.key,m,"h")}${koStatus(rd.key,m)}${koSlot(rd.key,m,"a")}</div>`).join("")}</div>`).join("");
-  html+=`<div class="round" style="justify-content:flex-start"><div class="round-title">Third place</div><div class="ko-match">${koSlot("3P",0,"h")}${koStatus("3P",0)}${koSlot("3P",0,"a")}</div></div>`;
+  html+=`<div class="round" style="justify-content:flex-start"><div class="ko-match">${koSlot("3P",0,"h")}${koStatus("3P",0)}${koSlot("3P",0,"a")}</div></div>`;
   const br=document.getElementById("bracket"); br.innerHTML=html;
+  const navInner=document.getElementById("ko-nav-inner");
+  if(navInner) navInner.innerHTML=RNDS.map(rd=>`<div class="ko-nav-title">${rd.title}</div>`).join("")+`<div class="ko-nav-title">Third place</div>`;
   br.querySelectorAll('.ko-sc').forEach(i=>i.addEventListener('input',e=>{const v=e.target.value===''?'':Math.max(0,parseInt(e.target.value)||0); STATE.ko[`${e.target.dataset.r}-${e.target.dataset.m}-${e.target.dataset.side}-sc`]=v; save(); renderKnockout();}));
 }
 
@@ -595,6 +602,12 @@ document.getElementById("refreshBtn").addEventListener("click",()=>refresh(true)
 hydrateFeed();               // last-known scores appear instantly, before the network
 render(); renderKnockout(); stamp(); refresh(false);
 setInterval(()=>refresh(false), 60*1000); /* check for new scores every minute */
+
+// Set CSS var so sticky ko-rounds-nav clears the main header
+document.documentElement.style.setProperty('--header-h', document.querySelector('header').offsetHeight+'px');
+// Sync ko round-title nav with bracket horizontal scroll
+(()=>{const sc=document.querySelector('.ko-scroll'),ni=document.getElementById('ko-nav-inner');
+  if(sc&&ni) sc.addEventListener('scroll',()=>{ni.style.transform=`translateX(-${sc.scrollLeft}px)`;});})();
 </script>
 </body>
 </html>
