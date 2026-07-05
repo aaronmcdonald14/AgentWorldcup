@@ -150,12 +150,13 @@
   .match-status.live .dot{width:6px; height:6px; border-radius:50%; background:var(--live); animation:pulse 1.8s infinite; flex:none}
 
   #groupsView{display:none}
-  #ko-rounds-nav{position:sticky; top:var(--header-h,72px); z-index:20; background:var(--bg); overflow:hidden; border-bottom:1px solid var(--line); margin-bottom:6px}
-  #ko-nav-inner{display:flex; gap:26px; min-width:max-content; padding:8px 2px}
-  .ko-nav-title{min-width:236px; font-size:11px; font-weight:800; letter-spacing:1.2px; text-transform:uppercase; color:var(--brand); text-align:center}
-  .ko-scroll{overflow-x:auto; padding:6px 2px 20px}
-  .bracket{display:flex; gap:26px; min-width:max-content; align-items:stretch}
-  .round{display:flex; flex-direction:column; justify-content:space-around; gap:14px; min-width:236px}
+  #ko-rounds-nav{position:sticky; top:var(--header-h,72px); z-index:20; background:var(--bg); overflow-x:auto; margin-bottom:4px}
+  #ko-nav-inner{display:flex; gap:6px; padding:8px 12px; flex-wrap:nowrap; overflow-x:auto}
+  .ko-nav-title{min-width:unset; cursor:pointer; padding:5px 12px; border-radius:999px; border:1px solid var(--line); background:transparent; font-size:11px; font-weight:800; letter-spacing:1px; text-transform:uppercase; color:var(--muted); white-space:nowrap; transition:background .15s,color .15s,border-color .15s}
+  .ko-nav-title.active{background:var(--brand); color:#fff; border-color:var(--brand)}
+  .ko-scroll{overflow-x:scroll; scroll-snap-type:x mandatory; -webkit-overflow-scrolling:touch; scroll-behavior:smooth; padding:0 0 20px}
+  .bracket{display:flex; gap:0; align-items:flex-start; min-width:max-content}
+  .round{scroll-snap-align:start; min-width:100vw; flex-shrink:0; display:flex; flex-direction:column; gap:12px; padding:10px 14px}
   .round-title{display:none}
   .ko-match{background:var(--card); border:1px solid var(--line); border-radius:12px; box-shadow:var(--shadow); padding:8px; display:flex; flex-direction:column; gap:6px}
   .ko-match.final{border-color:var(--gold); box-shadow:var(--shadow-lg)}
@@ -517,6 +518,8 @@ function bindScoreInputs(){
    6. KNOCKOUT BRACKET
    ============================================================ */
 const RNDS=[{key:"R32",title:"Round of 32",n:16},{key:"R16",title:"Round of 16",n:8},{key:"QF",title:"Quarter-finals",n:4},{key:"SF",title:"Semi-finals",n:2},{key:"F",title:"Final",n:1}];
+let koDefaultScrollApplied=false;
+function getKoActiveIdx(){const sc=document.querySelector('.ko-scroll'); if(!sc||!sc.clientWidth)return 1; return Math.round(sc.scrollLeft/sc.clientWidth);}
 const stageMap={R32:"LAST_32",R16:"LAST_16",QF:"QUARTER_FINALS",SF:"SEMI_FINALS",F:"FINAL","3P":"THIRD_PLACE"};
 function provisional(){
   const order=KEYS(),first=[],second=[];
@@ -531,9 +534,9 @@ function koApiMatch(r,m){
   return KO_MATCHES.filter(x=>x.stage===st)[m]||null;
 }
 function koGet(r,m,s){
-  const k=`${r}-${m}-${s}`; if(STATE.ko[k]!=null)return STATE.ko[k];
   const api=koApiMatch(r,m);
   if(api) return s==="h"?canon(api.home):canon(api.away);
+  const k=`${r}-${m}-${s}`; if(STATE.ko[k]!=null)return STATE.ko[k];
   if(r==="R32"){const sd=provisional(); return sd[m*2+(s==="h"?0:1)]||"";}
   return "";
 }
@@ -571,8 +574,16 @@ function renderKnockout(){
   html+=`<div class="round" style="justify-content:flex-start"><div class="ko-match">${koSlot("3P",0,"h")}${koStatus("3P",0)}${koSlot("3P",0,"a")}</div></div>`;
   const br=document.getElementById("bracket"); br.innerHTML=html;
   const navInner=document.getElementById("ko-nav-inner");
-  if(navInner) navInner.innerHTML=RNDS.map(rd=>`<div class="ko-nav-title">${rd.title}</div>`).join("")+`<div class="ko-nav-title">Third place</div>`;
+  if(navInner){
+    const activeIdx=getKoActiveIdx();
+    const allRnds=[...RNDS,{key:"3P",title:"Third place"}];
+    navInner.innerHTML=allRnds.map((rd,i)=>`<div class="ko-nav-title${i===activeIdx?' active':''}" data-idx="${i}">${rd.title}</div>`).join("");
+    navInner.querySelectorAll('.ko-nav-title').forEach(el=>{
+      el.addEventListener('click',()=>{const sc=document.querySelector('.ko-scroll'); if(sc) sc.scrollTo({left:+el.dataset.idx*sc.clientWidth,behavior:'smooth'});});
+    });
+  }
   br.querySelectorAll('.ko-sc').forEach(i=>i.addEventListener('input',e=>{const v=e.target.value===''?'':Math.max(0,parseInt(e.target.value)||0); STATE.ko[`${e.target.dataset.r}-${e.target.dataset.m}-${e.target.dataset.side}-sc`]=v; save(); renderKnockout();}));
+  if(!koDefaultScrollApplied){koDefaultScrollApplied=true; setTimeout(()=>{const sc=document.querySelector('.ko-scroll'); if(sc&&sc.clientWidth){const idx=RNDS.findIndex(r=>r.key==='R16'); if(idx>=0) sc.scrollLeft=idx*sc.clientWidth;}},80);}
 }
 
 /* ============================================================
@@ -608,9 +619,10 @@ setInterval(()=>refresh(false), 60*1000); /* check for new scores every minute *
 
 // Set CSS var so sticky ko-rounds-nav clears the main header
 document.documentElement.style.setProperty('--header-h', document.querySelector('header').offsetHeight+'px');
-// Sync ko round-title nav with bracket horizontal scroll
-(()=>{const sc=document.querySelector('.ko-scroll'),ni=document.getElementById('ko-nav-inner');
-  if(sc&&ni) sc.addEventListener('scroll',()=>{ni.style.transform=`translateX(-${sc.scrollLeft}px)`;});})();
+// Update active nav pill as user swipes between rounds
+(()=>{const sc=document.querySelector('.ko-scroll'); if(!sc) return;
+  sc.addEventListener('scroll',()=>{const idx=Math.round(sc.scrollLeft/(sc.clientWidth||1));
+    document.querySelectorAll('.ko-nav-title').forEach((el,i)=>el.classList.toggle('active',i===idx));});})();
 </script>
 </body>
 </html>
